@@ -27,6 +27,8 @@ For the binaries of the circRNA identifier tools, please refer to the original d
 - **CIRI3**: [https://github.com/gyjames/CIRI3](https://github.com/gyjames/CIRI3)
 - **CIRCexplorer2**: [https://github.com/YangLab/CIRCexplorer2/tree/master](https://github.com/YangLab/CIRCexplorer2/tree/master)
 - **CLEAR**: [https://github.com/YangLab/CLEAR](https://github.com/YangLab/CLEAR)
+- **CircTools2**: [https://github.com/jakobilab/circtools](https://github.com/jakobilab/circtools)
+- **CircMeta**: [https://github.com/lichen-lab/circMeta](https://github.com/lichen-lab/circMeta)
 ---
 
 ## Scope of analysis
@@ -53,7 +55,7 @@ All analyses were performed using the **Homo sapiens primary assembly** referenc
 ## Reproducibility
 
 Due to data size constraints, raw sequencing data are not included in this repository. 
-The used datasets are available in the NCBI database
+The used datasets are available in the NCBI database. The needed accession identifiers can be found in the published article.
 Scripts required to reproduce simulations, normalization strategies, and benchmarking analyses are provided.
 
 Details on data sources and execution order are described in the manuscript and supplementary materials.
