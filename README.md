@@ -28,7 +28,6 @@ For the binaries of the circRNA identifier tools, please refer to the original d
 - **CIRCexplorer2**: [https://github.com/YangLab/CIRCexplorer2/tree/master](https://github.com/YangLab/CIRCexplorer2/tree/master)
 - **CLEAR**: [https://github.com/YangLab/CLEAR](https://github.com/YangLab/CLEAR)
 - **CircTools2**: [https://github.com/jakobilab/circtools](https://github.com/jakobilab/circtools)
-- **CircMeta**: [https://github.com/lichen-lab/circMeta](https://github.com/lichen-lab/circMeta)
 ---
 
 ## Scope of analysis
