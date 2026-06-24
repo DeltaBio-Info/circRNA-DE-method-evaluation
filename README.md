@@ -10,7 +10,8 @@ The goal of this repository is to evaluate how different normalization strategie
 
 ## Article
 
-- Preprint / Published version: *to be added*
+- [Preprint](https://www.biorxiv.org/content/10.64898/2026.03.06.710045v1)
+- Published version: *to be added*
 
 ---
 
