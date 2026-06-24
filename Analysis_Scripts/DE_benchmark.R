@@ -2,6 +2,57 @@
 
 # Authors: Erda Qorri & Valentin Varga
 
+# Purpose:
+#   Benchmark differential expression methods for circRNA BSJ/FSJ count data
+#   on simulated null, simulated signal, and real datasets.
+#
+# Main method families:
+#   - limma-voom
+#   - edgeR
+#   - DESeq2
+#   - ciriDE
+#
+# Main outputs:
+#   - per-replicate summary metrics
+#   - significant feature lists
+#   - DE result tables for signal datasets
+
+# Metric definitions:
+#   n_genes_initial: features before expression filtering
+#   n_genes_tested: features retained and tested
+#   pct_filtered: percent of initial features retained
+#   n_sig_*: number of significant calls at the given threshold
+#   fpr_*: false-positive rate in null simulations
+#   TPR/FDR/FPR: truth-set metrics for signal simulations
+#   runtime_sec: elapsed runtime for one replicate
+
+# Required input conventions:
+#   - count CSVs contain feature IDs in column X
+#   - metadata/design CSVs contain Group
+#   - contrast_formula uses clean group names: GroupA-GroupB 
+#     simulation functions use contrast_formula; real-data functions use two-element contrast vectors based on the metadata
+
+# Expected simulation files:
+#   <prefix><rep>_counts.csv
+#   <prefix><rep>_design.csv
+#   <prefix><rep>_TP.csv       # only required for signal datasets
+#
+# Example:
+#   BC1_counts.csv
+#   BC1_design.csv
+#   BC1_TP.csv
+
+# Script layout:
+#   1. Package imports and global settings
+#   2. Simulated null dataset functions
+#   3. Simulated signal dataset functions using truth sets
+#   4. edgeR functions
+#   5. DESeq2 functions
+#   6. Real-data helper functions
+#   7. Dataset path definitions
+#   8. Simulation benchmark loops
+#   9. Real-data benchmark loops
+
 ####################
 # Import libraries #
 ####################
@@ -17,6 +68,16 @@ library(tibble)
 ########
 set.seed(42)
 
+############# Base paths #############
+
+# Set this to your local benchmark folder.
+benchmark_root <- Sys.getenv("CIRCRNA_BENCHMARK_ROOT", unset = "/path/to/main_folder")
+
+sim_root <- file.path(benchmark_root, "Simulated_datasets", "BSJ_only")
+metadata_root <- file.path(benchmark_root, "metadata_online_datasets")
+own_data_root <- file.path(benchmark_root, "Own_dataset")
+results_root <- file.path(benchmark_root, "DE_Results")
+
 ###### DE Functions ######
 
 #### Simulated data ####
@@ -24,6 +85,16 @@ set.seed(42)
 ##################
 ### Limma-voom ###
 ##################
+
+# limma method variants:
+#   default      edgeR normalization + voom + lmFit + eBayes
+#   DFRBT        voom + lmFit(robust = TRUE) (DFRBT = default voom pipeline with robust lmFit)
+#   voomlmFit    voomLmFit(sample.weights = TRUE)
+#   quantile     voom(normalize.method = "quantile")
+#
+# Dataset suffixes:
+#   DE0          null simulations; all discoveries are false positives
+#   with_truth   signal simulations; compare discoveries against TP files
 
 ## ZeroSet ##
 # Functions #
@@ -2552,6 +2623,9 @@ lv_quantile_signal <- function(data_dir,
 #############
 ### edgeR ###
 #############
+# edgeR method variants:
+#   glmQLF      calcNormFactors + glmQLFit(robust = TRUE) + glmQLFTest
+#   default     current edgeR simulation pipeline; uses quasi-likelihood testing
 
 ## ZeroSet ##
 # Function #
@@ -3138,7 +3212,14 @@ run_edgeR_vdefault_with_truth <- function(bsj_counts_path,
 ##############
 ### DESeq2 ###
 ##############
-
+# DESeq2 method variants:
+#   WaldTest    DESeq + results(test = "Wald"); standard two-group test
+#   LRT         DESeq(test = "LRT"); likelihood-ratio test against reduced model
+#   BetaPrior   DESeq2 run with betaPrior-style shrinkage/legacy-compatible setup
+#
+# Threshold conventions:
+#   DE0          raw pvalue thresholds; all discoveries are false positives
+#   with_truth   padj thresholds; compare calls against TP files
 ## ZeroSet ##
 # Functions #
 run_DESeq2_betaprior_DE0 <- function(bsj_counts_path,
@@ -5212,6 +5293,25 @@ build_summary_table <- function(flat, fdr_thresholds = c(0.01, 0.05, 0.10)) {
   do.call(rbind, unlist(rows, recursive = FALSE))
 }
 ####### BSJE+FSJ Functions #####
+
+################
+### ciriDE #####
+################
+
+# ciriDE method variants:
+#   ciriFSJ     ciriDE-style analysis using BSJ counts plus CIRI-derived FSJ counts
+#   STAR        ciriDE-style analysis using BSJ counts plus STAR-derived linear junction/FSJ counts
+#   BSJonly     comparison mode using only BSJ counts, without linear-splicing support
+
+# Normalization variants:
+#   TMM         edgeR TMM normalization
+#   TMMwsp      edgeR TMMwsp normalization, useful for sparse count matrices
+
+# Notes:
+#   ciriDE evaluates differential circRNA expression while accounting for
+#   host-gene or linear-splicing abundance through FSJ/linear count input.
+#   The STAR mode is a parallel FSJ evidence source, not a different DE model.
+
 run_ciriDE <- function(bsj_path, fsj_path, meta_path, norm_method, contrasts) {
   
   # Prep the data
@@ -5716,103 +5816,114 @@ deseq_bsj <- function(bsj_path, meta_path, contrasts, run_mode) {
 ### Null data ###
 ## BSJ only ##
 # Autofilter #
+
 bsj_NULL_autofilter_data <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/BC-tissue/autofilter_counts/DE_0",
-  EBC1 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC1/autofilter_counts/DE_0",
-  EBC2 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC2/autofilter_counts/DE_0",
-  `HCC-PBMC` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-PBMC/autofilter_counts/DE_0",
-  `HCC-tissue` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-tissue/autofilter_counts/DE_0"
+  BC = file.path(sim_root, "BC-tissue", "autofilter_counts", "DE_0"),
+  EBC1 = file.path(sim_root, "EBC1", "autofilter_counts", "DE_0"),
+  EBC2 = file.path(sim_root, "EBC2", "autofilter_counts", "DE_0"),
+  `HCC-PBMC` = file.path(sim_root, "HCC-PBMC", "autofilter_counts", "DE_0"),
+  `HCC-tissue` = file.path(sim_root, "HCC-tissue", "autofilter_counts", "DE_0"),
+  SCLC = file.path(sim_root, "SCLC", "autofilter_counts", "DE_0")
 )
 
 # MIN 5 filter #
 bsj_NULL_min5_data <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/BC-tissue/min5_counts/DE_0",
-  EBC1 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC1/min5_counts/DE_0",
-  EBC2 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC2/min5_counts/DE_0",
-  `HCC-PBMC` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-PBMC/min5_counts/DE_0",
-  `HCC-tissue` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-tissue/min5_counts/DE_0"
+  BC = file.path(sim_root, "BC-tissue", "min5_counts", "DE_0"),
+  EBC1 = file.path(sim_root, "EBC1", "min5_counts", "DE_0"),
+  EBC2 = file.path(sim_root, "EBC2", "min5_counts", "DE_0"),
+  `HCC-PBMC` = file.path(sim_root, "HCC-PBMC", "min5_counts", "DE_0"),
+  `HCC-tissue` = file.path(sim_root, "HCC-tissue", "min5_counts", "DE_0"),
+  SCLC = file.path(sim_root, "SCLC", "min5_counts", "DE_0")
 )
 
 # MIN 1 filter #
 bsj_NULL_min1_data <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/BC-tissue/min1_counts/DE_0",
-  EBC1 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC1/min1_counts/DE_0",
-  EBC2 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC2/min1_counts/DE_0",
-  `HCC-PBMC` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-PBMC/min1_counts/DE_0",
-  `HCC-tissue` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-tissue/min1_counts/DE_0"
+  BC = file.path(sim_root, "BC-tissue", "min1_counts", "DE_0"),
+  EBC1 = file.path(sim_root, "EBC1", "min1_counts", "DE_0"),
+  EBC2 = file.path(sim_root, "EBC2", "min1_counts", "DE_0"),
+  `HCC-PBMC` = file.path(sim_root, "HCC-PBMC", "min1_counts", "DE_0"),
+  `HCC-tissue` = file.path(sim_root, "HCC-tissue", "min1_counts", "DE_0"),
+  SCLC = file.path(sim_root, "SCLC", "min1_counts", "DE_0")
 )
 
 ### 10p data ###
 ## BSJ only ##
 # Autofilter #
 bsj_10P_autofilter_data <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/BC-tissue/autofilter_counts/DE_0.1",
-  EBC1 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC1/autofilter_counts/DE_0.1",
-  EBC2 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC2/autofilter_counts/DE_0.1",
-  `HCC-PBMC` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-PBMC/autofilter_counts/DE_0.1",
-  `HCC-tissue` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-tissue/autofilter_counts/DE_0.1"
+  BC = file.path(sim_root, "BC-tissue", "autofilter_counts", "DE_0.1"),
+  EBC1 = file.path(sim_root, "EBC1", "autofilter_counts", "DE_0.1"),
+  EBC2 = file.path(sim_root, "EBC2", "autofilter_counts", "DE_0.1"),
+  `HCC-PBMC` = file.path(sim_root, "HCC-PBMC", "autofilter_counts", "DE_0.1"),
+  `HCC-tissue` = file.path(sim_root, "HCC-tissue", "autofilter_counts", "DE_0.1"),
+  SCLC = file.path(sim_root, "SCLC", "autofilter_counts", "DE_0.1")
 )
 
 # MIN 5 filter #
 bsj_10P_min5_data <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/BC-tissue/min5_counts/DE_0.1",
-  EBC1 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC1/min5_counts/DE_0.1",
-  EBC2 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC2/min5_counts/DE_0.1",
-  `HCC-PBMC` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-PBMC/min5_counts/DE_0.1",
-  `HCC-tissue` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-tissue/min5_counts/DE_0.1"
+  BC = file.path(sim_root, "BC-tissue", "min5_counts", "DE_0.1"),
+  EBC1 = file.path(sim_root, "EBC1", "min5_counts", "DE_0.1"),
+  EBC2 = file.path(sim_root, "EBC2", "min5_counts", "DE_0.1"),
+  `HCC-PBMC` = file.path(sim_root, "HCC-PBMC", "min5_counts", "DE_0.1"),
+  `HCC-tissue` = file.path(sim_root, "HCC-tissue", "min5_counts", "DE_0.1"),
+  SCLC = file.path(sim_root, "SCLC", "min5_counts", "DE_0.1")
 )
 
 # MIN 1 filter #
 bsj_10P_min1_data <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/BC-tissue/min1_counts/DE_0.1",
-  EBC1 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC1/min1_counts/DE_0.1",
-  EBC2 = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/EBC2/min1_counts/DE_0.1",
-  `HCC-PBMC` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-PBMC/min1_counts/DE_0.1",
-  `HCC-tissue` = "/media/meteor/FatDawg/Benchmark_Paper/Simulated_datasets/BSJ_only/HCC-tissue/min1_counts/DE_0.1"
+  BC = file.path(sim_root, "BC-tissue", "min1_counts", "DE_0.1"),
+  EBC1 = file.path(sim_root, "EBC1", "min1_counts", "DE_0.1"),
+  EBC2 = file.path(sim_root, "EBC2", "min1_counts", "DE_0.1"),
+  `HCC-PBMC` = file.path(sim_root, "HCC-PBMC", "min1_counts", "DE_0.1"),
+  `HCC-tissue` = file.path(sim_root, "HCC-tissue", "min1_counts", "DE_0.1"),
+  SCLC = file.path(sim_root, "SCLC", "min1_counts", "DE_0.1")
 )
 
 
 #### REAL data ####
 #BSJ paths
 bsj_paths <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/PRJNA553624_breast_cancer/circRNA_outs/CIRI3/BC_CIRI-Candidate.BSJ_Matrix",
-  EBC1= "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2026-02-19/circRNA_outs/CIRI3/EBC1_CIRI-Candidate.BSJ_Matrix",
-  EBC2= "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2025-11-25/circRNA_outs/CIRI3/EBC2_CIRI-Candidate.BSJ_Matrix",
-  `HCC-PBMC`= "/media/meteor/ChunkyBoi/BC-alarm/CircRNA/PBMC/38samples/circRNA_outs/CIRI3/HCC-PBMC_CIRI-Candidate.BSJ_Matrix",
-  `HCC-tissue`= "/media/meteor/FatDawg/Benchmark_Paper/PRJNA716508_hcc_study2/circRNA_outs/CIRI3/HCC-tissue_CIRI-Candidate.BSJ_Matrix"
+  BC = file.path(benchmark_root, "PRJNA553624_breast_cancer", "circRNA_outs", "CIRI3", "BC_CIRI-Candidate.BSJ_Matrix"),
+  EBC1 = file.path(own_data_root, "2026-02-19", "circRNA_outs", "CIRI3", "EBC1_CIRI-Candidate.BSJ_Matrix"),
+  EBC2 = file.path(own_data_root, "2025-11-25", "circRNA_outs", "CIRI3", "EBC2_CIRI-Candidate.BSJ_Matrix"),
+  `HCC-PBMC` = file.path(benchmark_root, "circRNA_outs", "CIRI3", "HCC-PBMC_CIRI-Candidate.BSJ_Matrix"),
+  `HCC-tissue` = file.path(benchmark_root, "PRJNA716508_hcc_study2", "circRNA_outs", "CIRI3", "HCC-tissue_CIRI-Candidate.BSJ_Matrix"),
+  SCLC = file.path(benchmark_root, "PRJNA1237743_SCLC_Revision", "circRNA_outs", "CIRI3", "CIRI-Candidate.BSJ_Matrix")
 )
 
 #FSJ paths
 fsj_paths <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/PRJNA553624_breast_cancer/circRNA_outs/CIRI3/CIRI-Candidate.FSJ_Matrix",
-  EBC1= "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2026-02-19/circRNA_outs/CIRI3/CIRI-Candidate.FSJ_Matrix",
-  EBC2= "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2025-11-25/circRNA_outs/CIRI3/CIRI-Candidate.FSJ_Matrix",
-  `HCC-PBMC`= "/media/meteor/ChunkyBoi/BC-alarm/CircRNA/PBMC/38samples/circRNA_outs/CIRI3/CIRI-Candidate.FSJ_Matrix",
-  `HCC-tissue`= "/media/meteor/FatDawg/Benchmark_Paper/PRJNA716508_hcc_study2/circRNA_outs/CIRI3/CIRI-Candidate.FSJ_Matrix"
+  BC = file.path(benchmark_root, "PRJNA553624_breast_cancer", "circRNA_outs", "CIRI3", "CIRI-Candidate.FSJ_Matrix"),
+  EBC1 = file.path(own_data_root, "2026-02-19", "circRNA_outs", "CIRI3", "CIRI-Candidate.FSJ_Matrix"),
+  EBC2 = file.path(own_data_root, "2025-11-25", "circRNA_outs", "CIRI3", "CIRI-Candidate.FSJ_Matrix"),
+  `HCC-PBMC` = file.path(benchmark_root, "circRNA_outs", "CIRI3", "CIRI-Candidate.FSJ_Matrix"),
+  `HCC-tissue` = file.path(benchmark_root, "PRJNA716508_hcc_study2", "circRNA_outs", "CIRI3", "CIRI-Candidate.FSJ_Matrix"),
+  SCLC = file.path(benchmark_root, "PRJNA1237743_SCLC_Revision", "circRNA_outs", "CIRI3", "CIRI-Candidate.FSJ_Matrix")
 )
 
 #STAR paths
 star_fc_paths <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/PRJNA553624_breast_cancer/featureCounts_matrix.txt",
-  EBC1= "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2026-02-19/2026-02-19-LINEAR-featureCounts_matrix.txt",
-  EBC2= "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2025-11-25/2025-11-25-LINEAR-featureCounts_matrix.txt",
-  `HCC-PBMC`= "/media/meteor/ChunkyBoi/BC-alarm/CircRNA/PBMC/38samples/featureCounts_matrix.txt",
-  `HCC-tissue`= "/media/meteor/FatDawg/Benchmark_Paper/PRJNA716508_hcc_study2/featureCounts_matrix.txt"
+  BC = file.path(benchmark_root, "PRJNA553624_breast_cancer", "featureCounts_matrix.txt"),
+  EBC1 = file.path(own_data_root, "2026-02-19", "2026-02-19-LINEAR-featureCounts_matrix.txt"),
+  EBC2 = file.path(own_data_root, "2025-11-25", "2025-11-25-LINEAR-featureCounts_matrix.txt"),
+  `HCC-PBMC` = file.path(benchmark_root, "featureCounts_matrix.txt"),
+  `HCC-tissue` = file.path(benchmark_root, "PRJNA716508_hcc_study2", "featureCounts_matrix.txt"),
+  SCLC = file.path(benchmark_root, "PRJNA1237743_SCLC_Revision", "mRNA_outs", "featureCounts_matrix.txt")
 )
 
 #metadata
 metadata_paths <- list(
-  BC = "/media/meteor/FatDawg/Benchmark_Paper/metadata_online_datasets/PRJNA553624_metadata.csv",
-  EBC1 = "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2026-02-19/Metadata.csv",
-  EBC2 = "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2025-11-25/11-25-Metadata.csv",
-  `HCC-PBMC`= "/media/meteor/ChunkyBoi/BC-alarm/CircRNA/PBMC/38samples/PBMC-meta.csv",
-  `HCC-tissue`= "/media/meteor/FatDawg/Benchmark_Paper/metadata_online_datasets/PRJNA716508_metadata_cleaned.csv"
+  BC = file.path(metadata_root, "PRJNA553624_metadata.csv"),
+  EBC1 = file.path(own_data_root, "2026-02-19", "Metadata.csv"),
+  EBC2 = file.path(own_data_root, "2025-11-25", "11-25-Metadata.csv"),
+  `HCC-PBMC` = file.path(metadata_root, "PBMC-meta.csv"),
+  `HCC-tissue` = file.path(metadata_root, "PRJNA716508_metadata_cleaned.csv"),
+  SCLC = file.path(metadata_root, "SCLC-metadata.csv")
 )
 
 ############# Output directories #############
-output_dir <- "/media/meteor/FatDawg/Benchmark_Paper/DE_Results"
-ciri_fsj_output_dir <- "/media/meteor/FatDawg/Benchmark_Paper/DE_Results/BSJ-FSJ/ciriDE"
-star_fsj_output_dir <- "/media/meteor/FatDawg/Benchmark_Paper/DE_Results/BSJ-FSJ/STAR"
+output_dir <- results_root
+ciri_fsj_output_dir <- file.path(results_root, "BSJ-FSJ", "ciriDE")
+star_fsj_output_dir <- file.path(results_root, "BSJ-FSJ", "STAR")
 
 ############# Normalization methods ###########
 norm_methods <- c('TMM', 'TMMwsp')
@@ -5830,7 +5941,7 @@ contrast_map <- c(
 )
 
 threshold_col_map <- c(
-  limma = "adj.P.val",
+  limma = "adj.P.Val",
   edgeR = "adj.P.val",
   DESeq2 = "FDR"
 )

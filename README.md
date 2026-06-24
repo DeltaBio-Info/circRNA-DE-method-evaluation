@@ -15,11 +15,30 @@ The goal of this repository is to evaluate how different normalization strategie
 
 ---
 
-## Repository contents
+## Code availability
 
-- `Analysis_Scripts/` – data preprocessing, simulations, quality control, and execution of differential expression tools  
-  - `Analysis_Scripts/Pre-processing/` – primary pipeline used to generate all circRNA and linear RNA count matrices analyzed in the manuscript
-  - `Analysis_Scripts/DE_benchmark.R` - main script to run the DE tools on the simulated and real datasets
+This repository contains the analysis code used for preprocessing, simulation, differential expression benchmarking, and visualization in the manuscript.
+
+Main scripts:
+
+- `Analysis_Scripts/Pre-processing/Run_pipeline.py`  
+  Runs the preprocessing workflow for FASTQ quality control, circRNA identification, and count-matrix generation.
+
+- `Analysis_Scripts/Simulation/Simulate_datasets.R`  
+  Generates semi-parametric simulated circRNA count datasets using SPsimSeq.
+
+- `Analysis_Scripts/Simulation/countsimQC.R`  
+  Performs quality control of simulated datasets.
+
+- `Analysis_Scripts/DE_benchmark.R`  
+  Main benchmarking script for limma-voom, edgeR, DESeq2, and ciriDE-style analyses.
+
+- `Analysis_Scripts/Data_exploration/`  
+  PCA, exploratory statistics, and filtering/outlier checks.
+
+The code is released under the CC0 1.0 Universal license; see `LICENSE`.
+
+---
 
 ## External tools
 
@@ -29,17 +48,23 @@ For the binaries of the circRNA identifier tools, please refer to the original d
 - **CIRCexplorer2**: [https://github.com/YangLab/CIRCexplorer2/tree/master](https://github.com/YangLab/CIRCexplorer2/tree/master)
 - **CLEAR**: [https://github.com/YangLab/CLEAR](https://github.com/YangLab/CLEAR)
 - **CircTools2**: [https://github.com/jakobilab/circtools](https://github.com/jakobilab/circtools)
+
 ---
 
-## Scope of analysis
-The repository includes scripts for:
+## Data availability
 
-- Pre-processing circRNA and linear RNA count data
-- Semi-parametric simulation of circRNA expression datasets
-- Quality control of simulated datasets
-- Running and benchmarking differential expression tools under different normalization strategies
+Raw sequencing files are not stored in this repository because of file size constraints. Public datasets can be retrieved from NCBI/SRA using the accession identifiers below.
 
-This code is intended to support the analyses presented in the manuscript and is not designed as a general-purpose circRNA analysis pipeline.
+| Dataset label | Source/accession | Used for | Availability |
+|---|---|---|---|
+| BC | PRJNA553624 | real-data benchmarking and simulation source data | Public NCBI/SRA |
+| HCC-tissue | PRJNA716508 | real-data benchmarking and simulation source data | Public NCBI/SRA |
+| HCC-PBMC | PRJNA754685 | real-data benchmarking and simulation source data | Public NCBI/SRA |
+| SCLC | PRJNA1237743 | real-data benchmarking | Public NCBI/SRA |
+| EBC1 | internal cohort | real-data benchmarking and simulation source data | Public NCBI/SR |
+| EBC2 | internal cohort | real-data benchmarking and simulation source data | Public NCBI/SR |
+
+Derived count matrices, simulated datasets, metadata tables, and benchmark result tables are not tracked in Git because of size.
 
 ---
 
@@ -71,13 +96,16 @@ Assessing the impact of parental linear gene normalization in the performance of
 *Journal*. DOI
 
 ---
+
 ## Contact
 
 For questions regarding this repository, please contact the corresponding author:
 
 - Lajos Haracska
 - Email: lajos.haracska@deltabio.eu
+
 ---
+
 ## License
 
 This repository is made available under the **Creative Commons CC0 1.0 Universal (CC0 1.0)** license.
