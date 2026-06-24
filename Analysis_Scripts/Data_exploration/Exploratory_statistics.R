@@ -1,28 +1,70 @@
+# =============================================================================
+# circRNA Count Matrix QC and Filtering Statistics Pipeline
+# =============================================================================
+# Purpose:
+#   Loads circRNA back-spliced junction (BSJ) count matrices produced by three
+#   callers (CIRI3, CircExplorer2/CE2 and circTest/CT) across multiple datasets, applies
+#   edgeR's filterByExpr under three minimum-count thresholds, and computes
+#   per-sample quality statistics (sparsity, BSJ counts, inter-sample
+#   correlations) both before and after filtering.
+#
+#   A final wide-format summary table is printed comparing CIRI3 vs CE2, CIRI3 vs CT, and CE2 vs CT across
+#   datasets and filter levels.
+#
+# Inputs:
+#   - BSJ count matrices (tab-separated, rows = circRNAs, columns = samples)
+#     from CIRI3, CE2, and CT for each dataset
+#   - Sample metadata CSVs (must contain Sample.Name and Group columns)
+#
+# Outputs (written to output_dir/{filter_version}/):
+#   - summary_table.csv                  : Per-sample stats before/after filtering
+#   - {group}_{method}_correlation.csv   : Inter-sample correlation matrices
+#   - {group}_{method}_pvalue.csv        : Corresponding p-value matrices
+#   - {group}_{method}_statistic.csv     : Corresponding test statistic matrices
+#
+# Filter levels applied (via edgeR::filterByExpr):
+#   "default" / "Default" : AutoFilter (edgeR default min.count)
+#   "1"                   : Min 1 BSJ read
+#   "5"                   : Min 5 BSJ reads
+#
+
 library(dplyr)
 library(edgeR)
 library(ggplot2)
 
+# =============================================================================
+# Input: BSJ count matrix paths
+#   Keys follow the pattern {Caller}_{Dataset}, e.g. CIRI_HCC-Tissue
+#   Each file is a tab-separated matrix with circRNA IDs as row names
+# =============================================================================
 datasets <- list(
-  `CIRI_HCC-Tissue` = "/media/meteor/FatDawg/Benchmark_Paper/PRJNA716508_hcc_study2/circRNA_outs/CIRI3/HCC-tissue_CIRI-Candidate.BSJ_Matrix",
-  `CE2_HCC-Tissue`   = "/media/meteor/FatDawg/Benchmark_Paper/PRJNA716508_hcc_study2/circRNA_outs/CE2/HCC-tissue_CE2-BSJ_Matrix.txt",
-  `CIRI_BC-Tissue` = "/media/meteor/FatDawg/Benchmark_Paper/PRJNA553624_breast_cancer/circRNA_outs/CIRI3/BC_CIRI-Candidate.BSJ_Matrix",
-  `CE2_BC-Tissue`  = "/media/meteor/FatDawg/Benchmark_Paper/PRJNA553624_breast_cancer/circRNA_outs/CE2/BC_CE2-BSJ_Matrix.txt",
-  `CIRI_HCC-PBMC` = "/media/meteor/ChunkyBoi/BC-alarm/CircRNA/PBMC/38samples/circRNA_outs/CIRI3/HCC-PBMC_CIRI-Candidate.BSJ_Matrix",
-  `CE2_HCC-PBMC`  = "/media/meteor/ChunkyBoi/BC-alarm/CircRNA/PBMC/38samples/circRNA_outs/CE2/HCC-PBMC_CE2-BSJ_Matrix.txt",
-  `CIRI_EBC1` = "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2026-02-19/circRNA_outs/CIRI3/CIRI-Candidate.BSJ_Matrix",
-  `CE2_EBC1` = "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2026-02-19/circRNA_outs/CE2/CE2-BSJ_Matrix.txt",
-  `CIRI_EBC2` = "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2025-11-25/circRNA_outs/CIRI3/EBC2_CIRI-Candidate.BSJ_Matrix",
-  `CE2_EBC2` = "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2025-11-25/circRNA_outs/CE2/EBC2_CE2-BSJ_Matrix.txt"
+  `CIRI_HCC-Tissue` = "/path/to/circRNA_outs/CIRI3/HCC-tissue_CIRI-Candidate.BSJ_Matrix",
+  `CE2_HCC-Tissue`   = "/path/to/circRNA_outs/CE2/HCC-tissue_CE2-BSJ_Matrix.txt",
+  `CIRI_BC-Tissue` = "/path/to/circRNA_outs/CIRI3/BC_CIRI-Candidate.BSJ_Matrix",
+  `CE2_BC-Tissue`  = "/path/to/circRNA_outs/CE2/BC_CE2-BSJ_Matrix.txt",
+  `CIRI_HCC-PBMC` = "/path/to/circRNA_outs/CIRI3/HCC-PBMC_CIRI-Candidate.BSJ_Matrix",
+  `CE2_HCC-PBMC`  = "/path/to/circRNA_outs/CE2/HCC-PBMC_CE2-BSJ_Matrix.txt",
+  `CIRI_EBC1` = "/path/to/circRNA_outs/CIRI3/CIRI-Candidate.BSJ_Matrix",
+  `CE2_EBC1` = "/path/to/circRNA_outs/CE2/CE2-BSJ_Matrix.txt",
+  `CIRI_EBC2` = "/path/to/circRNA_outs/CIRI3/EBC2_CIRI-Candidate.BSJ_Matrix",
+  `CE2_EBC2` = "/path/to/circRNA_outs/CE2/EBC2_CE2-BSJ_Matrix.txt"
 )
 
+# =============================================================================
+# Input: Sample metadata paths (one CSV per biological dataset)
+#   Each CSV must contain at minimum: Sample.Name, Group
+# =============================================================================
 metadata_paths <- list(
-  `HCC-Tissue` = "/media/meteor/FatDawg/Benchmark_Paper/metadata_online_datasets/PRJNA716508_metadata_cleaned.csv",
-  `BC-Tissue` = "/media/meteor/FatDawg/Benchmark_Paper/metadata_online_datasets/PRJNA553624_metadata.csv",
-  `HCC-PBMC` = "/media/meteor/FatDawg/Benchmark_Paper/metadata_online_datasets/PRJNA754685_metadata_cleaned.csv",
-  `EBC1` = "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2026-02-19/Metadata.csv",
-  `EBC2` = "/media/meteor/FatDawg/Benchmark_Paper/Own_dataset/2025-11-25/11-25-Metadata.csv"
+  `HCC-Tissue` = "/path/to/metadata_online_datasets/PRJNA716508_metadata_cleaned.csv",
+  `BC-Tissue` = "/path/to/metadata_online_datasets/PRJNA553624_metadata.csv",
+  `HCC-PBMC` = "/path/to/metadata_online_datasets/PRJNA754685_metadata_cleaned.csv",
+  `EBC1` = "/path/to/Own_dataset/2026-02-19/Metadata.csv",
+  `EBC2` = "/path/to/Own_dataset/2025-11-25/11-25-Metadata.csv"
   )
 
+# =============================================================================
+# Label mapping: raw filter tokens (from filterByExpr args or filenames)
+# =============================================================================
 filter_labels <- c(
   "Unfiltered"  = "Unfiltered",
   "default"     = "AutoFilter",
@@ -34,29 +76,44 @@ filter_labels <- c(
   "Pre-filter"  = "Pre-filter"
 )
 
+# =============================================================================
+# Accumulators
+#   results      : Named list of per-(dataset × filter) result objects
+#   raw_ids      : circRNA IDs before any filtering, keyed by dataset name
+#   raw_matched  : Pre-filter CIRI3/CE2 ID overlap count, keyed by CIRI name
+#   raw_matrices : Full unfiltered count matrices, keyed by dataset name
+# =============================================================================
 results <- list()
 raw_ids  <- list()
 raw_matched <- list()
 raw_matrices <- list()
 
+# =============================================================================
+# Main loop: load the data; match IDs; compute pre-filter stats;  filter; save
+# =============================================================================
 for (name in names(datasets)) {
-  
+
+  # 1. Load BSJ count matrix; drop non-count annotation columns if present
   df <- read.table(datasets[[name]], sep = "\t", header = TRUE, row.names = 1, check.names = FALSE)
   annotation_col <- c("gene_id", "geneName")
   df <- df[, !(colnames(df) %in% annotation_col), drop = FALSE]
-  
+
+  # 2. Load matching metadata for this dataset
   if (grepl("HCC-Tissue", name)) meta <- read.csv(metadata_paths$`HCC-Tissue`)
   if (grepl("BC-Tissue",  name)) meta <- read.csv(metadata_paths$`BC-Tissue`)
   if (grepl("HCC-PBMC",   name)) meta <- read.csv(metadata_paths$`HCC-PBMC`)
   if (grepl("EBC1",       name)) meta <- read.csv(metadata_paths$`EBC1`)
   if (grepl("EBC2",       name)) meta <- read.csv(metadata_paths$`EBC2`)
-  
+
+  # Restrict metadata to samples present in the count matrix
   meta_sub <- meta %>% filter(Sample.Name %in% colnames(df))
-  # Store raw IDs before any filtering
-  raw_ids[[name]] <- rownames(df)
+  
+  # 3. Store raw (unfiltered) circRNA IDs for overlapping circRNAs  raw_ids[[name]] <- rownames(df)
   raw_matrices[[name]] <- df
-  # Compute pre-filter matched for CIRI-CE2 pairs
-  # Only do this when we hit a CIRI entry and its CE2 partner is already loaded
+
+  # 4. Compute pre-filter CIRI3 / CE2 circRNA ID overlap
+  #    Uses normalize_and_match_ids() to harmonise ID formats between callers.
+  #    Overlap is recorded once per CIRI/CE2 pair (whichever is loaded second).  
   if (grepl("^CIRI_", name)) {
     ce2_name <- sub("^CIRI_", "CE2_", name)
     if (!is.null(raw_ids[[ce2_name]])) {
@@ -73,7 +130,7 @@ for (name in names(datasets)) {
     }
   }
   
-  # --- Per-sample stats BEFORE filtering (computed once, shared across filter versions) ---
+  # 5. Per-sample statistics BEFORE filtering (computed once, reused across all three filter levels to avoid redundant computation)
   median_before              <- apply(df, 2, median)
   average_before             <- apply(df, 2, mean)
   percent_zero_before        <- apply(df, 2, function(x) mean(x == 0) * 100)
@@ -82,7 +139,12 @@ for (name in names(datasets)) {
   bsj1_before <- apply(df, 2, function(x) sum(x == 1))
   bsj2_before <- apply(df, 2, function(x) sum(x == 2))
   bsj3_before <- apply(df, 2, function(x) sum(x == 3))
-  
+
+  # 6. Inner loop: apply filterByExpr under three minimum-count thresholds
+  #    "default" : edgeR's built-in threshold (approximately 10 / median lib size)
+  #    "1"       : min.count = 1  (very permissive)
+  #    "5"       : min.count = 5  (moderately stringent)
+                       
   for (mc in c("default", "1", "5")) {
     if (mc == "default") {
       keep <- filterByExpr(df, group = meta_sub$Group)
@@ -91,7 +153,7 @@ for (name in names(datasets)) {
     }
     filtered_df <- df[keep, , drop = FALSE]
     
-    # --- Library sizes ---
+    # 6a. Compute TMM-normalised library sizes for the filtered matrix
     dge <- DGEList(counts = filtered_df, group = meta_sub$Group)
     dge <- calcNormFactors(dge, method = "TMM")
     
@@ -108,7 +170,7 @@ for (name in names(datasets)) {
     
     cat(name, "|", mc, "-> Retained", nrow(filtered_df), "circRNAs\n")
     
-    # --- Per-sample stats AFTER filtering ---
+    # 6b. Per-sample statistics AFTER filtering
     median_after              <- apply(filtered_df, 2, median)
     average_after             <- apply(filtered_df, 2, mean)
     percent_zero_after        <- apply(filtered_df, 2, function(x) mean(x == 0) * 100)
@@ -117,7 +179,8 @@ for (name in names(datasets)) {
     bsj1_after <- apply(filtered_df, 2, function(x) sum(x == 1))
     bsj2_after <- apply(filtered_df, 2, function(x) sum(x == 2))
     bsj3_after <- apply(filtered_df, 2, function(x) sum(x == 3))
-    
+
+    # Assemble before/after comparison table (one row per sample)
     summary_table <- data.frame(
       Sample                 = colnames(df),
       circRNAs_before        = circRNAs_per_sample_before,
@@ -140,13 +203,18 @@ for (name in names(datasets)) {
       check.names = FALSE
     )
     
-    # Correlations (unchanged logic)
+    # 6c. Inter-sample correlation matrices, computed per group 
+    #     Both Spearman and Pearson correlations are computed pairwise.
+    #     A tiny jitter (runif 0–1e-6) is added before Spearman to break ties without materially affecting rank order.                        
     corr_by_cond <- list()
+                        
     for (cond in unique(meta_sub$Group)) {
       samples_cond <- intersect(meta_sub$Sample.Name[meta_sub$Group == cond], colnames(df))
       if (length(samples_cond) > 1) {
         mat_cond <- df[, samples_cond, drop = FALSE]
         n <- length(samples_cond)
+
+        # Pre-allocate symmetric matrices for correlation, p-value, and statistic
         corr_s <- pval_s <- stat_s <- matrix(NA, n, n)
         corr_p <- pval_p <- stat_p <- matrix(NA, n, n)
         rownames(corr_s) <- colnames(corr_s) <- samples_cond
@@ -155,15 +223,21 @@ for (name in names(datasets)) {
         rownames(corr_p) <- colnames(corr_p) <- samples_cond
         rownames(pval_p) <- colnames(pval_p) <- samples_cond
         rownames(stat_p) <- colnames(stat_p) <- samples_cond
+        
+        # Upper triangle only, then mirror to lower (symmetric matrix)
         for (i in 1:n) {
           for (j in i:n) {
             x <- mat_cond[, i]; y <- mat_cond[, j]
+
+        # Spearman (with jitter to handle tied BSJ counts)
             xj <- x + runif(length(x), 0, 1e-6)
             yj <- y + runif(length(y), 0, 1e-6)
             ts <- cor.test(xj, yj, method = "spearman")
             corr_s[i,j] <- corr_s[j,i] <- ts$estimate
             pval_s[i,j] <- pval_s[j,i] <- ts$p.value
             stat_s[i,j] <- stat_s[j,i] <- ts$statistic
+
+      # Pearson (no jitter needed)
             tp <- cor.test(x, y, method = "pearson")
             corr_p[i,j] <- corr_p[j,i] <- tp$estimate
             pval_p[i,j] <- pval_p[j,i] <- tp$p.value
@@ -179,7 +253,7 @@ for (name in names(datasets)) {
       }
     }
     
-    # Store under a combined key e.g. "CIRI_HCC-Tissue_default"
+ # 6d. Store results under a combined key: {Caller}_{Dataset}_{filter} (Example: "CIRI_HCC-Tissue_default")
     result_key <- paste(name, mc, sep = "_")
     results[[result_key]] <- list(
       summary_table   = summary_table,
@@ -190,8 +264,13 @@ for (name in names(datasets)) {
   }
 }
 
+# =============================================================================
+# Output: Write per-dataset results to CSV
+# =============================================================================
+
 output_dir <- "/media/meteor/FatDawg/Benchmark_Paper/Dataset_statistics"
 
+# Helper: write CSV only if the file does not already exist (safe re-runs)
 write_if_new <- function(x, path, row.names = TRUE) {
   if (file.exists(path)) {
     cat("  Skipping (exists):", basename(path), "\n")
@@ -204,19 +283,19 @@ for (dataset_name in names(results)) {
   
   res <- results[[dataset_name]]
   
-  # Extract filter version from key and create subdirectory
+  # Organise outputs into subdirectories by filter level (default / 1 / 5)
   filter_version <- str_extract(dataset_name, "default|1|5")
   sub_dir        <- file.path(output_dir, filter_version)
   dir.create(sub_dir, showWarnings = FALSE, recursive = TRUE)
   
-  ## ---------- SUMMARY ----------
+  # --- Summary table (one row per sample, before/after stats) ---
   write_if_new(
     res$summary_table,
     file.path(sub_dir, paste0(dataset_name, "_summary_table.csv")),
     row.names = FALSE
   )
   
-  ## ---------- CORRELATIONS ----------
+  # --- Correlation matrices (per group × method combination) ---
   for (cond in names(res$correlations)) {
     for (method in c("spearman", "pearson")) {
       
@@ -235,6 +314,22 @@ for (dataset_name in names(results)) {
   cat("Done:", dataset_name, "\n")
 }
 
+# =============================================================================
+# Helper function: long_summary
+# =============================================================================
+# Reshapes a per-sample summary table into long (tidy) format, attaching
+# dataset-level metadata columns for downstream plotting or aggregation.
+#
+# Parameters:
+#   summary_df     : Wide summary_table data frame (one row per sample)
+#   dataset_name   : Biological dataset label (e.g. "HCC-Tissue")
+#   identifier     : Caller label ("CIRI" or "CE2")
+#   filter_version : Filter level ("default", "1", or "5")
+#
+# Returns:
+#   Tidy data frame with columns: Sample, Dataset, Identifier,
+#   Filter_version, Metric, Value
+# =============================================================================
 long_summary <- function(summary_df, dataset_name, identifier, filter_version) {
   summary_df %>%
     mutate(
@@ -250,11 +345,19 @@ long_summary <- function(summary_df, dataset_name, identifier, filter_version) {
     )
 }
 
-# Combine multiple datasets
+                        
+# =============================================================================
+# Aggregate summary: wide-format CIRI3 vs CE2 comparison table
+# =============================================================================
+# Parses each result key to extract caller, dataset, and filter level, then
+# computes dataset-level averages and pivots CIRI / CE2 side by side for
+# direct comparison.
+# =============================================================================
 library(stringr)
 
 summary_stats <- dplyr::bind_rows(lapply(names(results), function(key) {
-  
+
+  # Parse result key: {CIRI|CE2}_{Dataset}_{filter}
   parts      <- str_match(key, "^(CIRI|CE2)_(.+)_(default|1|5)$")
   identifier <- parts[, 2]   # CIRI or CE2
   dataset    <- parts[, 3]   # HCC-Tissue, BC-Tissue etc
@@ -262,7 +365,8 @@ summary_stats <- dplyr::bind_rows(lapply(names(results), function(key) {
   
   tbl <- results[[key]]$summary_table
   if (is.null(tbl)) return(NULL)
-  
+
+  # Compute dataset-level averages across samples
   data.frame(
     identifier              = identifier,
     dataset                 = dataset,
@@ -274,7 +378,7 @@ summary_stats <- dplyr::bind_rows(lapply(names(results), function(key) {
   )
 }))
 
-# Pivot wide so CIRI and CE2 are side by side
+# Pivot wide so CIRI3 and CE2 metrics appear as separate columns per row
 summary_wide <- summary_stats %>%
   tidyr::pivot_wider(
     id_cols     = c(dataset, filter_version),
