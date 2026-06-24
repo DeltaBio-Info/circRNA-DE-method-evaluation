@@ -61,8 +61,8 @@ Raw sequencing files are not stored in this repository because of file size cons
 | HCC-tissue | PRJNA716508 | real-data benchmarking and simulation source data | Public NCBI/SRA |
 | HCC-PBMC | PRJNA754685 | real-data benchmarking and simulation source data | Public NCBI/SRA |
 | SCLC | PRJNA1237743 | real-data benchmarking | Public NCBI/SRA |
-| EBC1 | internal cohort | real-data benchmarking and simulation source data | Public NCBI/SR |
-| EBC2 | internal cohort | real-data benchmarking and simulation source data | Public NCBI/SR |
+| EBC1 | internal cohort - PRJNA1429817  | real-data benchmarking and simulation source data | Public NCBI/SRA |
+| EBC2 | internal cohort - PRJNA1429817  | real-data benchmarking and simulation source data | Public NCBI/SRA |
 
 Derived count matrices, simulated datasets, metadata tables, and benchmark result tables are not tracked in Git because of size.
 
