@@ -1,3 +1,22 @@
+# =============================================================================
+# FastQC and MultiQC Quality Control Pipeline
+# =============================================================================
+# Purpose:
+#     Runs quality control on raw and cleaned FASTQ files using FastQC, then
+#     summarizes the FastQC reports with MultiQC. The script skips files that
+#     already have both FastQC HTML and ZIP outputs.
+#
+#
+# Inputs:
+#     project_folder       :            Main project directory.
+#     threads              :            Number of CPU threads to use.
+#
+# Outputs:
+#     FASTQC_reports/pre_trim/          FastQC reports for raw FASTQ files.
+#     FASTQC_reports/post_trim/         FastQC reports for cleaned FASTQ files.
+#     FASTQC_reports/Pre_trim_QC.html   MultiQC summary for raw FASTQ files.
+#     FASTQC_reports/Post_trim_QC.html  MultiQC summary for cleaned FASTQ files.
+# =============================================================================
 import os
 import subprocess
 import glob
@@ -16,6 +35,22 @@ post_trim_folder = os.path.join(output_folder, 'post_trim')
 os.makedirs(pre_trim_folder, exist_ok=True)
 os.makedirs(post_trim_folder, exist_ok=True)
 
+# =============================================================================
+# Function: has_fastqc_output
+# =============================================================================
+# Checks whether a FASTQ file already has the expected FastQC HTML and ZIP
+# report files in the selected output directory.
+#
+# Parameters:
+#     fastq_file           :            Path to FASTQ file.
+#     output_folder        :            Directory where FastQC reports are expected.
+#
+#
+# Returns:
+#        logical           :            True if both FastQC HTML and ZIP outputs
+#                                       exist; otherwise False.
+# =============================================================================
+
 def has_fastqc_output(fastq_file, output_folder):
     base_name = os.path.basename(fastq_file)
     if base_name.endswith('.gz'):
@@ -26,6 +61,22 @@ def has_fastqc_output(fastq_file, output_folder):
     expected_html = os.path.join(output_folder, base_name + '_fastqc.html')
     expected_zip = os.path.join(output_folder, base_name + '_fastqc.zip')
     return os.path.exists(expected_html) and os.path.exists(expected_zip)
+
+# =============================================================================
+# Function: run_fastqc
+# =============================================================================
+# Runs FastQC on all FASTQ files in a selected input folder, skipping files that
+# already have complete FastQC outputs.
+#
+# Parameters:
+#     input_folder         :            Directory containing FASTQ files.
+#     output_folder        :            Directory where FastQC reports will be written.
+#     threads              :            Number of CPU threads to use.
+#
+#
+# Returns:
+#        None              :            Writes FastQC reports to output_folder.
+# =============================================================================
 
 def run_fastqc(input_folder, output_folder, threads=28):
     fastq_files = glob.glob(os.path.join(input_folder, '*.fastq')) + \
