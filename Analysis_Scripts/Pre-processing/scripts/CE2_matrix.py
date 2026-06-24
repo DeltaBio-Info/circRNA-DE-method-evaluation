@@ -1,3 +1,24 @@
+# =============================================================================
+# CIRCexplorer2 BSJ and FSJ Count Matrix Generation Pipeline
+# =============================================================================
+# Purpose:
+#     Generates BSJ and FSJ count matrices from CIRCexplorer2 quantification
+#     outputs. The script extracts circRNA back-splice junction counts from
+#     CE2 quantification files and estimates corresponding FSJ counts by
+#     overlapping circRNA coordinates with canonical splice junction count files.
+#
+# Inputs:
+#     circRNA_folder       :            Directory containing sample-level
+#                                       CIRCexplorer2 output folders.
+#
+# Outputs:
+#     CE2-BSJ_Matrix.txt   :            BSJ count matrix containing circRNA IDs,
+#                                       gene names, and readNumber counts.
+#     CE2-FSJ_Matrix.txt   :            FSJ count matrix containing circRNA IDs,
+#                                       gene names, and summed splice-junction
+#                                       counts overlapping circRNA start/end sites.
+# =============================================================================
+
 import pandas as pd
 import sys
 import glob
