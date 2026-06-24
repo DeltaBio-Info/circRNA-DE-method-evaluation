@@ -1,3 +1,23 @@
+# =============================================================================
+# CIRI3 circRNA Identification Pipeline
+# =============================================================================
+# Purpose:
+#     Runs CIRI3 on SAM alignment files to identify circRNA candidates for each
+#     sample. The script creates one output folder per sample and writes the
+#     corresponding CIRI3 ".ciri" output file.
+#
+# Inputs:
+#     input_dir            :            Directory containing SAM alignment files.
+#     output_dir           :            Directory where CIRI3 sample folders will be written.
+#     reference            :            Reference genome FASTA file.
+#     gtf                  :            Reference genome GTF annotation file.
+#     threads              :            Number of CPU threads to use.
+#
+# Outputs:
+#     output_dir/sample/                  Sample-specific CIRI3 output directory.
+#     output_dir/sample/CIRI3_sample.ciri CIRI3 circRNA candidate output file.
+# =============================================================================
+
 import os
 import subprocess
 import sys
