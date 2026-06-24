@@ -1,7 +1,42 @@
-# Visualize PCAs using the BSJ, FSJ, and FSJ and FSJ count matrices
+################################################################################
+# Script Name: circRNA PCA Visualization Functions
+#
+# Description:
+# This script contains two functions for generating Principal Component Analysis
+# (PCA) plots from circRNA expression count matrices.
+#
+# Function 1:
+#   run_bsj_pca()
+#   Generates PCA plots using a single count matrix such as:
+#     - BSJ (Back-Splice Junction) counts
+#     - FSJ (Forward-Splice Junction) counts
+#
+# Function 2:
+#   run_fsj_bsj_pca()
+#   Generates PCA plots using BSJ counts normalized with scaling factors
+#   calculated from the corresponding FSJ count matrix.
+################################################################################
 
-# Function 1: Generates the PCA plots for the BSJ and FSJ feature counts
-
+# =============================================================================
+# Function 1: run_bsj_pca
+# =============================================================================
+# Generates a PCA plot from a single BSJ or FSJ feature count matrix.
+#
+# Parameters:
+#     metadata_path        :            Path to metadata file (.csv or .xlsx).
+#     bsj_path             :            Path to BSJ or FSJ count matrix.
+#     circ_id_col          :            Column containing circRNA identifiers. Removed prior to analysis.
+#     gene_col             :            Column containing host gene annotations. Removed prior to analysis.
+#     metadata_sample_col  :            Metadata column containing sample identifiers matching matrix columns.
+#     metadata_group_col   :            Metadata column defining biological groups.
+#     title                :            PCA plot title.
+#
+#
+# Returns:
+#        pca_plot         :             ggplot2 PCA visualization.
+#        pca_df           :             PCA coordinates for all samples.
+#        dgelist          :             Filtered and TMM-normalized DGEList.
+# =============================================================================
 run_bsj_pca <- function(
     metadata_path,
     bsj_path,
@@ -135,15 +170,6 @@ run_bsj_pca <- function(
   ))
 }
 
-# Run function requires:
-# 1. Path to the study metadata
-# 2. Path to the BSJ feature counts matrix
-# 3. Title of the column that contains the circRNA IDs (can be left empty with "" if your data does not contain this column)
-# 4. Title of the column that contains the host gene names (can be left empty with "" if your data does not contain this column)
-# 5. Title of the column in your metadata file that matches the colnames of the BSJ and FSJ matrix
-# 6. Title of the column in your metadata file that specifies the conditions being tested.
-# 7. Title of the plot (optional, can be left empty with "" if a title is not needed).
-
 res <- run_bsj_pca(
   metadata_path = "path/to/metadata_csv/metadata.csv",
   bsj_path = "path/to/bsj_mtx/bsj_mtx.txt",
@@ -154,19 +180,40 @@ res <- run_bsj_pca(
   title = "Test Title"
 )
 
-# The output is a list which contains the following information:
-# 1. The dataframe used to generate the PCA
-# 2. The generated PCA plot
-# 3. BSJ/FSJ DGEList
-# 4. BSJ/FSJ filtered DGEList
-# 5. BSJ/FSJ filtered and normalized DGEList
 
 # Access the generated PCA plot
 res$pca_plot
 
-
-############## Function 2: Generates the PCA plots for the combined FSJ and BSJ ############## 
-
+# =============================================================================
+# Function 2: run_fsj_bsj_pca
+# =============================================================================
+# Generates a PCA plot using BSJ counts normalized with scaling factors
+# derived from the corresponding FSJ count matrix.
+#
+# Rationale:
+#     FSJ counts represent the abundance of the corresponding linear transcript
+#     and are used to calculate TMM normalization factors and library sizes.
+#     These normalization factors are subsequently applied to the BSJ count
+#     matrix prior to PCA generation.
+#
+# Parameters:
+#     metadata_path        :            Path to metadata file (.csv or .xlsx).
+#     bsj_path             :            Path to BSJ count matrix.
+#     fsj_path             :            Path to FSJ count matrix.
+#     circ_id_col          :            Column containing circRNA identifiers.
+#     gene_col             :            Column containing host gene annotations.
+#     metadata_sample_col  :            Metadata column containing sample identifiers matching matrix columns.
+#     metadata_group_col   :            Metadata column defining biological groups.
+#     title                :            PCA plot title.
+#
+#
+# Returns:
+#        pca_plot                    :  The generated PCA plot.
+#        pca_df                      :  PCA coordinates for all samples.
+#        fsj_dge                     :  Raw FSJ DGEList.
+#        fsj_dgelist_filtered        :  Filtered FSJ DGEList.
+#        fsj_dgelist_filtered_norm   :  Filtered and TMM-normalized FSJ DGEList.
+# =============================================================================
 run_fsj_bsj_pca <- function(
     metadata_path,
     bsj_path,
