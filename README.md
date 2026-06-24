@@ -40,7 +40,7 @@ The code is released under the CC0 1.0 Universal license; see `LICENSE`.
 
 ---
 
-## External tools
+## Software requirements
 
 For the binaries of the circRNA identifier tools, please refer to the original developers’ GitHub pages:
 
@@ -49,8 +49,25 @@ For the binaries of the circRNA identifier tools, please refer to the original d
 - **CLEAR**: [https://github.com/YangLab/CLEAR](https://github.com/YangLab/CLEAR)
 - **CircTools2**: [https://github.com/jakobilab/circtools](https://github.com/jakobilab/circtools)
 
----
+R packages:
 
+- edgeR
+- limma
+- DESeq2
+- tidyverse
+- SPsimSeq
+- SimSeq
+
+Python tools/scripts require Python 3 and external command-line tools used by the preprocessing pipeline.
+
+External tools:
+
+- STAR
+- featureCounts/Subread
+- fastp
+- FastQC
+
+---
 ## Data availability
 
 Raw sequencing files are not stored in this repository because of file size constraints. Public datasets can be retrieved from NCBI/SRA using the accession identifiers below.
@@ -64,7 +81,17 @@ Raw sequencing files are not stored in this repository because of file size cons
 | EBC1 | internal cohort - PRJNA1429817  | real-data benchmarking and simulation source data | Not-yet-Public NCBI/SRA |
 | EBC2 | internal cohort - PRJNA1429817  | real-data benchmarking and simulation source data | Not-yet-Public NCBI/SRA |
 
-Derived count matrices, simulated datasets, metadata tables, and benchmark result tables are not tracked in Git because of size.
+## Files not included in this repository
+
+The following files are not included directly in Git due to size and/or privacy constraints:
+
+- raw FASTQ files
+- BAM/SAM alignment files
+- large count matrices
+- simulated replicate datasets
+- full benchmark result tables
+
+Where possible, derived non-identifying files are provided through the external data archive listed above.
 
 ---
 
