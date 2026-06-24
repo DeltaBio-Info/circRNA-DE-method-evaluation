@@ -1,8 +1,49 @@
+# =============================================================================
+# fastp FASTQ Cleaning and Trimming Pipeline
+# =============================================================================
+# Purpose:
+#     Runs fastp-based quality control, adapter trimming, quality trimming,
+#     low-complexity filtering, and length filtering on FASTQ files.
+#     The script supports both paired-end and single-end FASTQ inputs.
+#
+# Inputs:
+#     input_folder         :            Directory containing raw FASTQ files.
+#     output_folder        :            Directory where cleaned FASTQ files will be written.
+#     report_folder        :            Directory where fastp reports will be written.
+#     is_se                :            Sequencing mode flag. Use "no" for paired-end
+#                                       data and any other value for single-end data.
+#
+# Outputs:
+#     output_folder/                      Cleaned FASTQ files.
+#     report_folder/*_fastp_report.html   fastp HTML reports.
+#     report_folder/*_fastp_report.json   fastp JSON reports.
+# =============================================================================
+
 #!/usr/bin/env python3
 
 import os
 import subprocess
 import sys
+
+# =============================================================================
+# Function: run_fastp
+# =============================================================================
+# Runs fastp on paired-end FASTQ files using quality trimming, adapter detection,
+# low-complexity filtering, poly-X/poly-G trimming, and minimum-length filtering.
+#
+# Parameters:
+#     input1               :            Path to forward FASTQ file.
+#     input2               :            Path to reverse FASTQ file.
+#     output1              :            Path where cleaned forward FASTQ will be written.
+#     output2              :            Path where cleaned reverse FASTQ will be written.
+#     report_html          :            Path where fastp HTML report will be written.
+#     report_json          :            Path where fastp JSON report will be written.
+#
+#
+# Returns:
+#        None              :            Writes cleaned paired-end FASTQ files and
+#                                       fastp reports to disk.
+# =============================================================================
 
 def run_fastp(input1, input2, output1, output2, report_html, report_json):
     command = [
@@ -33,6 +74,24 @@ def run_fastp(input1, input2, output1, output2, report_html, report_json):
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] fastp failed: {e}")
 
+# =============================================================================
+# Function: run_SE_fastp
+# =============================================================================
+# Runs fastp on single-end FASTQ files using quality trimming, adapter detection,
+# low-complexity filtering, and minimum-length filtering.
+#
+# Parameters:
+#     input1               :            Path to single-end FASTQ file.
+#     output1              :            Path where cleaned FASTQ will be written.
+#     report_html          :            Path where fastp HTML report will be written.
+#     report_json          :            Path where fastp JSON report will be written.
+#
+#
+# Returns:
+#        None              :            Writes cleaned single-end FASTQ file and
+#                                       fastp reports to disk.
+# =============================================================================
+
 def run_SE_fastp(input1, output1, report_html, report_json):
     se_command = [
         "fastp",
@@ -56,6 +115,24 @@ def run_SE_fastp(input1, output1, report_html, report_json):
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] fastp failed: {e}")
 
+# =============================================================================
+# Function: process_fastq_files
+# =============================================================================
+# Searches an input directory for FASTQ files and runs the appropriate fastp
+# workflow depending on whether the data are paired-end or single-end.
+#
+# Parameters:
+#     input_folder         :            Directory containing raw FASTQ files.
+#     output_folder        :            Directory where cleaned FASTQ files will be written.
+#     report_folder        :            Directory where fastp HTML and JSON reports will be written.
+#     is_se                :            Sequencing mode flag. Use "no" for paired-end
+#                                       data and any other value for single-end data.
+#
+#
+# Returns:
+#        None              :            Processes FASTQ files and writes cleaned
+#                                       reads and reports to disk.
+# =============================================================================
 def process_fastq_files(input_folder, output_folder, report_folder, is_se):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
