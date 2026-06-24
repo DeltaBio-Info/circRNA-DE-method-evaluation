@@ -1,3 +1,23 @@
+# =============================================================================
+# CIRI3 BSJ and FSJ Count Matrix Generation Pipeline
+# =============================================================================
+# Purpose:
+#     Generates BSJ and FSJ count matrices from multiple CIRI3 circRNA output
+#     files. The script collects all detected circRNA candidates across samples,
+#     extracts junction and non-junction read counts, and writes sample-level
+#     count matrices for downstream circRNA expression analysis.
+#
+# Inputs:
+#     circRNA_folder       :            Directory containing CIRI3 ".ciri" files.
+#
+# Outputs:
+#     CIRI-Candidate.BSJ_Matrix         BSJ count matrix containing junction-read
+#                                       counts for all circRNA candidates.
+#     CIRI-Candidate.FSJ_Matrix         FSJ/non-BSJ count matrix containing
+#                                       non-junction-read counts for all
+#                                       circRNA candidates.
+# =============================================================================
+
 import pandas as pd
 import sys
 import glob
