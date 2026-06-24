@@ -1,3 +1,22 @@
+# =============================================================================
+# featureCounts Gene-Level Count Matrix Pipeline
+# =============================================================================
+# Purpose:
+#     Generates a gene-level count matrix from STAR-aligned BAM files using
+#     featureCounts. The script collects BAM files, optionally renames STAR
+#     output BAM filenames, runs paired-end read counting, cleans the
+#     featureCounts output, and writes a simplified count matrix.
+#
+# Inputs:
+#     gtf                  :            Path to GTF annotation file.
+#     input_dir            :            Directory containing STAR BAM outputs in sample subfolders.
+#     output_dir           :            Directory where the featureCounts matrix will be written.
+#     threads              :            Number of CPU threads to use.
+#
+# Outputs:
+#     featureCounts_matrix.txt          Gene-level count matrix.
+# =============================================================================
+
 import os
 import sys
 import subprocess
