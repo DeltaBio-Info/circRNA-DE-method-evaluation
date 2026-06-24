@@ -1,3 +1,24 @@
+# =============================================================================
+# STAR Paired-End RNA-seq Alignment Pipeline
+# =============================================================================
+# Purpose:
+#     Aligns paired-end FASTQ files to a reference genome using STAR and writes
+#     coordinate-sorted BAM files for each sample. The script preloads the STAR
+#     genome index into shared memory before alignment and removes it after all
+#     samples are processed.
+#
+# Inputs:
+#     genome_path          :            Path to STAR genome index directory.
+#     input_folder         :            Directory containing paired-end FASTQ files.
+#     destination_folder   :            Directory where STAR output folders will be written.
+#     threads              :            Number of CPU threads to use.
+#
+# Outputs:
+#     	destination_folder/
+#       sample_name/                     STAR alignment output for each sample.
+#       sample_name/sample_name*.bam     Coordinate-sorted BAM output.
+# =============================================================================
+
 #!/bin/python
 
 import os
