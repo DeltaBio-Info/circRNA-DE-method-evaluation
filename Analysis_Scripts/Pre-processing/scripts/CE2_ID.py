@@ -1,3 +1,25 @@
+# =============================================================================
+# CIRCexplorer2 circRNA Identification Pipeline
+# =============================================================================
+# Purpose:
+#     Runs CIRCexplorer2 on BWA-aligned BAM files to identify circRNA candidates
+#     for each sample. The script converts SAM files to sorted BAM files if
+#     needed, then runs CIRCexplorer2 parse and annotate inside a Singularity
+#     container.
+#
+# Inputs:
+#     input_dir            :            Directory containing sample-level folders
+#                                       with SAM/BAM alignment files.
+#     reference            :            Reference genome FASTA file.
+#     gtf                  :            Reference genome GTF annotation file.
+#     threads              :            Number of CPU threads to use.
+#
+# Outputs:
+#     input_dir/sample/CE2_outs/                 CIRCexplorer2 output directory.
+#                                                Parsed back-splice junction file.
+#     input_dir/sample/CE2_outs/				 Annotated circRNA output file.
+# =============================================================================
+
 import os
 import subprocess
 import sys
