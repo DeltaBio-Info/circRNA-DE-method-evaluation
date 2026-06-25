@@ -53,6 +53,74 @@
 #   8. Simulation benchmark loops
 #   9. Real-data benchmark loops
 
+# Usage:
+#   CIRCRNA_BENCHMARK_ROOT=/path/to/main_folder Rscript Analysis_Scripts/DE_benchmark.R
+#
+# Required folder layout:
+#   Simulated_datasets/BSJ_only/
+#   metadata_online_datasets/
+#   Own_dataset/
+#   DE_Results/
+
+# Input table schemas:
+#   BSJ/FSJ matrices:
+#     - rows: circRNA IDs/features
+#     - columns: sample IDs
+#     - optional gene_id column is removed before DE testing
+#
+#   Simulated count CSVs:
+#     - feature IDs in column X
+#     - sample columns after X
+#
+#   Metadata CSVs:
+#     - must contain Group
+#     - sample order is matched to count matrix columns where possible
+#
+#   TP files:
+#     - contain true positive circRNA/features for DE0.1 simulations
+
+# Real-data DE function contract:
+#   All run_* functions return a list with:
+#     results  : full DE result table
+#     gene_map : optional circRNA-to-gene mapping, if gene_id exists
+#     plots    : recorded diagnostic plots
+#     meta     : optional method metadata
+
+# Naming glossary:
+#   DE0       : null simulations with no true DE features
+#   DE0.1     : signal simulations with 10% true DE features
+#   ciriFSJ   : BSJ tested with CIRI-derived FSJ normalization/support
+#   STAR      : BSJ tested with STAR/featureCounts linear signal
+#   BSJonly   : BSJ-only comparison without FSJ/linear support
+#   DFRBT     : limma robust lmFit variant
+#   LmFit     : limma voomLmFit with sample weights
+
+# Simulation outputs:
+#   *_summary.csv
+#     replicate-level metrics: n tested, n significant, FPR/TPR/FDR, runtime
+#
+#   *_sig_genes.csv
+#     significant feature IDs at each threshold
+#
+#   *_DE_results_all_reps.csv
+#     full DE result tables for signal simulations
+#
+# Real-data outputs:
+#   all_results
+#     nested list: dataset -> tool -> source -> mode/norm -> result object
+#
+#   runtime_df / runtime_summary
+#     runtime logs across real-data method combinations
+#
+#   summary_table
+#     standardized significant-call summary across tools and thresholds
+
+# Contrast direction:
+#   Simulated functions use contrast_formula strings such as "Case-Control".
+#   Real-data functions use contrast_map entries c(case, control).
+#   Positive logFC means higher in case than control after make.names() cleanup.
+
+
 ####################
 # Import libraries #
 ####################
