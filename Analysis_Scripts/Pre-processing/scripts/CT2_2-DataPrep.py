@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 # =============================================================================
-# CIRCexplorer2 Input List Preparation Pipeline
+# Circtools2 Input List Preparation Pipeline
 # =============================================================================
 # Purpose:
-#     Prepares input list files for the CIRCexplorer2 detection step from STAR
+#     Prepares input list files for the Circtools2 detection step from STAR
 #     mapping outputs. For each sample directory, the script locates the joint
 #     chimeric junction file, mate1 chimeric junction file, mate2 chimeric
 #     junction file, and coordinate-sorted BAM file, converts each path to the
