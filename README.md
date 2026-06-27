@@ -126,10 +126,10 @@ Assessing the impact of parental linear gene normalization in the performance of
 
 ## Contact
 
-For questions regarding this repository, please contact the corresponding author:
+For questions regarding this repository, please contact the first author:
 
-- Lajos Haracska
-- Email: lajos.haracska@deltabio.eu
+- Erda Qorri
+- Email: erda.qorri@brc.hu
 
 ---
 
