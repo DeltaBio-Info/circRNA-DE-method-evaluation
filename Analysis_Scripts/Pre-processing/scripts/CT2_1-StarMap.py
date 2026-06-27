@@ -1,7 +1,7 @@
 #!/bin/python
 
 # =============================================================================
-# STAR Alignment Pipeline for CIRCexplorer2 Pre-processing
+# STAR Alignment Pipeline for Circtools2 Pre-processing
 # =============================================================================
 # Purpose:
 #     Runs STAR alignment on paired-end cleaned FASTQ files for each sample.
@@ -104,7 +104,7 @@ for i in range(0,len(file_list),2):
 		'--chimOutType', 'Junctions', 'SeparateSAMold'
 		]
 
-		# Mate1-only STAR alignment. CIRCexplorer2 uses single-mate chimeric
+		# Mate1-only STAR alignment. Circtools2 uses single-mate chimeric
 		# junction evidence in addition to the paired-end alignment.
 		cmd_m1 = ['STAR', '--genomeLoad', 'NoSharedMemory','--runThreadN', str(threads),
 		'--genomeDir', genome_path,
