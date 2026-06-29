@@ -29,7 +29,7 @@ input_dir = sys.argv[1]
 reference = sys.argv[2]
 gtf = sys.argv[3]
 threads = str(sys.argv[4])
-container = "/media/meteor/FatDawg/Benchmark_Paper/Scripts/CIRCexplorer2.sif"
+container = "/path/to/container/CIRCexplorer2.sif"
 def run_cmd(cmd):
 	"""
 	Run a command as a subprocess and print its output in real-time.
